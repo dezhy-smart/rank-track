@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rank Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap');
+
+        :root {
+            --bg-color: #0d0814;
+            --card-bg: #1a102c;
+            --box-bg: #271744;
+            --primary: #9d4edd;
+            --primary-light: #c77dff;
+            --accent: #e0aaff;
+            --text-main: #ffffff;
+            --text-muted: #a89bbd;
+            --highlight: #3c096c;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .layout-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            justify-content: center;
+            align-items: stretch;
+            max-width: 1000px;
+            width: 100%;
+            z-index: 10;
+        }
+
+        .tracker-card {
+            background-color: var(--card-bg);
+            width: 100%;
+            max-width: 450px;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6), 0 0 20px rgba(157, 78, 221, 0.15);
+            border: 1px solid rgba(157, 78, 221, 0.2);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        #unlockScreen {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            z-index: 20;
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .unlock-card {
+            text-align: center;
+            padding: 50px 30px;
+        }
+
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.8); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        #unlockScreen h2 {
+            color: var(--accent);
+            font-size: 1.6em;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        #unlockScreen p {
+            color: var(--text-muted);
+            margin-bottom: 5px;
+            font-size: 1.1em;
+        }
+
+        .unlock-btn {
+            background: linear-gradient(90deg, var(--primary), var(--primary-light));
+            border: none;
+            padding: 12px 30px;
+            border-radius: 30px;
+            color: white;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin-top: 30px;
+            box-shadow: 0 5px 15px rgba(157, 78, 221, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .unlock-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(157, 78, 221, 0.6);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.5em;
+            color: var(--text-muted);
+            margin-bottom: 25px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .config-section {
+            background-color: var(--box-bg);
+            padding: 15px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .config-section label {
+            font-size: 0.9em;
+            color: var(--accent);
+        }
+
+        .config-section input {
+            background-color: #120b1f;
+            color: white;
+            border: 1px solid var(--primary);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-family: 'Poppins', sans-serif;
+            outline: none;
+            color-scheme: dark;
+        }
+
+        .rank-display {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .rank-display p {
+            color: var(--text-muted);
+            font-size: 0.9em;
+        }
+
+        .rank-name {
+            font-size: 3em;
+            font-weight: 800;
+            color: var(--text-main);
+            margin: 5px 0;
+            text-shadow: 0 0 20px var(--primary);
+            background: -webkit-linear-gradient(45deg, var(--accent), var(--primary-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .day-counter {
+            font-size: 1.1em;
+            color: var(--primary-light);
+            font-weight: 600;
+        }
+
+        .progress-section {
+            margin-bottom: 30px;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 18px;
+            background-color: #120b1f;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(157, 78, 221, 0.3);
+            margin-bottom: 10px;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--primary), var(--primary-light));
+            border-radius: 20px;
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 10px var(--primary);
+        }
+
+        .progress-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85em;
+            color: var(--text-muted);
+        }
+
+        /* --- НОВ СТИЛ ЗА МОТИВАЦИОННОТО СЪОБЩЕНИЕ --- */
+        .motivation-msg {
+            display: none; /* Скрито по подразбиране */
+            margin-top: 15px;
+            padding: 10px;
+            background-color: rgba(199, 125, 255, 0.1);
+            border: 1px dashed var(--primary-light);
+            border-radius: 10px;
+            text-align: center;
+            font-size: 0.9em;
+            color: var(--text-main);
+            font-weight: 600;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .motivation-msg span {
+            color: var(--accent);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: auto;
+        }
+
+        .stat-box {
+            background-color: var(--box-bg);
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .stat-box span {
+            font-size: 0.8em;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+
+        .stat-box strong {
+            font-size: 1.2em;
+            color: var(--accent);
+        }
+
+        .next-rank-name {
+            font-size: 0.7em;
+            color: var(--primary-light);
+            margin-top: 3px;
+            display: block;
+        }
+
+        .info-box {
+            background-color: rgba(199, 125, 255, 0.1);
+            border: 1px dashed var(--primary-light);
+            padding: 12px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 0.9em;
+            color: var(--text-main);
+            margin-bottom: 15px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .info-box strong {
+            color: var(--accent);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .ranks-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .rank-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 15px;
+            background-color: var(--box-bg);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            color: var(--text-muted);
+            font-size: 0.95em;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .rank-item:hover {
+            background-color: #321e56;
+            border-color: rgba(157, 78, 221, 0.5);
+            color: var(--text-main);
+        }
+
+        .rank-item.active {
+            background: linear-gradient(90deg, rgba(157, 78, 221, 0.3), rgba(199, 125, 255, 0.15));
+            border-color: var(--primary-light);
+            color: var(--text-main);
+            box-shadow: 0 0 15px rgba(157, 78, 221, 0.25);
+            transform: scale(1.02);
+            font-weight: 600;
+        }
+
+        .rank-item .rank-label-days {
+            color: var(--accent);
+            opacity: 0.8;
+            font-size: 0.9em;
+        }
+
+        .rank-item.active .rank-label-days {
+            opacity: 1;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+    </style>
+</head>
+<body>
+
+<div id="unlockScreen">
+    <div class="tracker-card unlock-card">
+        <h2>🎉 ПОЗДРАВЛЕНИЯ 🎉</h2>
+        <p>Отключи нов ранг:</p>
+        <div class="rank-name" id="unlockRankName">Зареждане...</div>
+        <button class="unlock-btn" id="continueBtn">Продължи към тракера</button>
+    </div>
+</div>
+
+<div class="layout-container" id="dashboardView">
+
+    <div class="tracker-card">
+        <h1>Tracker</h1>
+
+        <div class="config-section">
+            <label for="startDate">Начална дата:</label>
+            <input type="date" id="startDate" value="2026-06-29">
+        </div>
+
+        <div class="rank-display">
+            <p>Текущ статус</p>
+            <div class="rank-name" id="rankName">Зареждане...</div>
+            <div class="day-counter" id="totalDays">Ден --</div>
+        </div>
+
+        <div class="progress-section">
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="progressBar"></div>
+            </div>
+            <div class="progress-stats">
+                <span id="percentComplete">0%</span>
+                <span id="daysInCurrentRank">0 / 0 дни</span>
+            </div>
+
+            <div class="motivation-msg" id="motivationMsg">
+                🚀 Утре отключваш <span>нов ранг</span>! Не се предавай!
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-box">
+                <span>Остават до</span>
+                <strong id="daysLeft">--</strong>
+                <span class="next-rank-name" id="nextRankName">--</span>
+            </div>
+            <div class="stat-box">
+                <span>Рангът тече от</span>
+                <strong id="rankStartDate">--</strong>
+            </div>
+        </div>
+    </div>
+
+    <div class="tracker-card">
+        <h1>Рангове</h1>
+
+        <div class="info-box" id="clickInfo">
+            Цъкни върху някой ранг, за да видиш кога започва
+        </div>
+
+        <ul class="ranks-list" id="ranksList">
+        </ul>
+    </div>
+
+</div>
+
+<script>
+    const ranks = [
+        { name: "Mortal", startDay: 1, endDay: 6, label: "Day 1 - 6" },
+        { name: "Soldier", startDay: 7, endDay: 13, label: "Day 7 - 13" },
+        { name: "Captain", startDay: 14, endDay: 20, label: "Day 14 - 20" },
+        { name: "General", startDay: 21, endDay: 29, label: "Day 21 - 29" },
+        { name: "Commander", startDay: 30, endDay: 59, label: "Day 30 - 59" },
+        { name: "Warrior", startDay: 60, endDay: 89, label: "Day 60 - 89" },
+        { name: "Demigod", startDay: 90, endDay: 179, label: "Day 90+" },
+        { name: "NoFap God", startDay: 180, endDay: 364, label: "Day 180+" },
+        { name: "Titan", startDay: 365, endDay: 729, label: "Day 365+" },
+        { name: "Primordial", startDay: 730, endDay: Infinity, label: "Day 730+" }
+    ];
+
+    const startDateInput = document.getElementById('startDate');
+    const ranksListContainer = document.getElementById('ranksList');
+    const clickInfo = document.getElementById('clickInfo');
+
+    const unlockScreen = document.getElementById('unlockScreen');
+    const dashboardView = document.getElementById('dashboardView');
+    const unlockRankName = document.getElementById('unlockRankName');
+    const continueBtn = document.getElementById('continueBtn');
+    const motivationMsg = document.getElementById('motivationMsg');
+
+    let fireworksInterval;
+
+    function shootFireworks() {
+        var duration = 3 * 1000;
+        var animationEnd = Date.now() + duration;
+        var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 30 };
+
+        function randomInRange(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+
+        fireworksInterval = setInterval(function() {
+            var timeLeft = animationEnd - Date.now();
+
+            if (timeLeft <= 0) {
+                return clearInterval(fireworksInterval);
+            }
+
+            var particleCount = 50 * (timeLeft / duration);
+
+            confetti({
+                ...defaults, particleCount,
+                origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+            });
+            confetti({
+                ...defaults, particleCount,
+                origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+            });
+        }, 250);
+    }
+
+    function buildRanksList() {
+        ranksListContainer.innerHTML = '';
+        ranks.forEach((rank, index) => {
+            const li = document.createElement('li');
+            li.className = 'rank-item';
+            li.id = `rank-item-${index}`;
+
+            li.innerHTML = `
+                    <span class="rank-label-name">${rank.name}</span>
+                    <span class="rank-label-days">${rank.label}</span>
+                `;
+
+            li.addEventListener('click', () => calculateSpecificRankDate(rank));
+            ranksListContainer.appendChild(li);
+        });
+    }
+
+    function calculateSpecificRankDate(rank) {
+        const startDateStr = startDateInput.value;
+        if (!startDateStr) return;
+
+        const dateParts = startDateStr.split('-');
+        const startDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+
+        startDate.setDate(startDate.getDate() + (rank.startDay - 1));
+
+        const options = { day: 'numeric', month: 'long', year: 'numeric' };
+        const formattedDate = startDate.toLocaleDateString('bg-BG', options);
+
+        clickInfo.innerHTML = `Ранг <strong>${rank.name}</strong> започва на <br><strong>${formattedDate}</strong> (Ден ${rank.startDay})`;
+    }
+
+    function updateTracker() {
+        const startDateStr = startDateInput.value;
+        if (!startDateStr) return;
+
+        const dateParts = startDateStr.split('-');
+        const startDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+        const now = new Date();
+
+        startDate.setHours(0, 0, 0, 0);
+        now.setHours(0, 0, 0, 0);
+
+        const diffTime = now.getTime() - startDate.getTime();
+        const daysPassed = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+        let currentDay = daysPassed;
+        if (currentDay < 1) currentDay = 1;
+
+        document.getElementById('totalDays').innerText = `Ден ${currentDay}`;
+
+        let currentRankIndex = 0;
+        for (let i = 0; i < ranks.length; i++) {
+            if (currentDay >= ranks[i].startDay && currentDay <= ranks[i].endDay) {
+                currentRankIndex = i;
+                break;
+            }
+        }
+
+        const currentRank = ranks[currentRankIndex];
+        const nextRank = currentRankIndex < ranks.length - 1 ? ranks[currentRankIndex + 1] : null;
+
+        document.getElementById('rankName').innerText = currentRank.name;
+
+        document.querySelectorAll('.rank-item').forEach((el, index) => {
+            if (index === currentRankIndex) {
+                el.classList.add('active');
+            } else {
+                el.classList.remove('active');
+            }
+        });
+
+        if (currentDay === currentRank.startDay) {
+            unlockScreen.style.display = 'flex';
+            dashboardView.style.display = 'none';
+            unlockRankName.innerText = currentRank.name;
+            shootFireworks();
+        } else {
+            unlockScreen.style.display = 'none';
+            dashboardView.style.display = 'flex';
+        }
+
+        if (currentRank.name === "Primordial") {
+            document.getElementById('progressBar').style.width = '100%';
+            document.getElementById('percentComplete').innerText = '100%';
+            document.getElementById('daysInCurrentRank').innerText = 'Максимален ранг';
+            document.getElementById('daysLeft').innerText = 'MAX';
+            document.getElementById('nextRankName').innerText = 'Достигнат връх';
+            motivationMsg.style.display = 'none'; // Скриваме го, защото няма следващ ранг
+        } else {
+            const totalDaysInRank = currentRank.endDay - currentRank.startDay + 1;
+            const daysSpentInRank = currentDay - currentRank.startDay + 1;
+
+            let progressPercent = (daysSpentInRank / totalDaysInRank) * 100;
+            if (progressPercent > 100) progressPercent = 100;
+
+            document.getElementById('progressBar').style.width = `${progressPercent}%`;
+            document.getElementById('percentComplete').innerText = `${Math.floor(progressPercent)}%`;
+            document.getElementById('daysInCurrentRank').innerText = `${daysSpentInRank} / ${totalDaysInRank} дни`;
+
+            const daysLeft = currentRank.endDay - currentDay + 1;
+
+            // Проверка за правилна граматика (1 ден срещу X дни)
+            const daysLeftText = daysLeft === 1 ? 'ден' : 'дни';
+            document.getElementById('daysLeft').innerText = `${daysLeft} ${daysLeftText}`;
+
+            document.getElementById('nextRankName').innerText = nextRank ? nextRank.name : '';
+
+            // ЛОГИКА ЗА МОТИВАЦИОННОТО СЪОБЩЕНИЕ
+            if (progressPercent >= 100) {
+                motivationMsg.style.display = 'block';
+            } else {
+                motivationMsg.style.display = 'none';
+            }
+        }
+
+        const rankStartDateTime = new Date(startDate);
+        rankStartDateTime.setDate(startDate.getDate() + (currentRank.startDay - 1));
+
+        const options = { day: 'numeric', month: 'short', year: 'numeric' };
+        const formattedDate = rankStartDateTime.toLocaleDateString('bg-BG', options);
+        document.getElementById('rankStartDate').innerText = formattedDate;
+    }
+
+    continueBtn.addEventListener('click', () => {
+        unlockScreen.style.display = 'none';
+        dashboardView.style.display = 'flex';
+        if (fireworksInterval) clearInterval(fireworksInterval);
+    });
+
+    buildRanksList();
+    startDateInput.addEventListener('change', () => {
+        updateTracker();
+        clickInfo.innerHTML = "Цъкни върху някой ранг, за да видиш кога започва";
+    });
+    updateTracker();
+</script>
+</body>
+</html>
