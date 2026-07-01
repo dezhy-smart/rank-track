@@ -176,6 +176,16 @@
             font-size: 1.1em;
             color: var(--primary-light);
             font-weight: 600;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #dayCountdown {
+            font-size: 0.8em;
+            font-weight: 400;
+            opacity: 0.8;
         }
 
         .progress-section {
@@ -208,9 +218,8 @@
             color: var(--text-muted);
         }
 
-        /* --- НОВ СТИЛ ЗА МОТИВАЦИОННОТО СЪОБЩЕНИЕ --- */
         .motivation-msg {
-            display: none; /* Скрито по подразбиране */
+            display: none;
             margin-top: 15px;
             padding: 10px;
             background-color: rgba(199, 125, 255, 0.1);
@@ -264,7 +273,7 @@
         }
 
         .info-box {
-            background-color: rgba(199, 125, 255, 0.1);
+            background-color: var(--highlight);
             border: 1px dashed var(--primary-light);
             padding: 12px;
             border-radius: 10px;
@@ -335,270 +344,303 @@
 </head>
 <body>
 
-<div id="unlockScreen">
-    <div class="tracker-card unlock-card">
-        <h2>🎉 ПОЗДРАВЛЕНИЯ 🎉</h2>
-        <p>Отключи нов ранг:</p>
-        <div class="rank-name" id="unlockRankName">Зареждане...</div>
-        <button class="unlock-btn" id="continueBtn">Продължи към тракера</button>
-    </div>
-</div>
-
-<div class="layout-container" id="dashboardView">
-
-    <div class="tracker-card">
-        <h1>Tracker</h1>
-
-        <div class="config-section">
-            <label for="startDate">Начална дата:</label>
-            <input type="date" id="startDate" value="2026-06-29">
-        </div>
-
-        <div class="rank-display">
-            <p>Текущ статус</p>
-            <div class="rank-name" id="rankName">Зареждане...</div>
-            <div class="day-counter" id="totalDays">Ден --</div>
-        </div>
-
-        <div class="progress-section">
-            <div class="progress-bar-container">
-                <div class="progress-bar-fill" id="progressBar"></div>
-            </div>
-            <div class="progress-stats">
-                <span id="percentComplete">0%</span>
-                <span id="daysInCurrentRank">0 / 0 дни</span>
-            </div>
-
-            <div class="motivation-msg" id="motivationMsg">
-                🚀 Утре отключваш <span>нов ранг</span>! Не се предавай!
-            </div>
-        </div>
-
-        <div class="stats-grid">
-            <div class="stat-box">
-                <span>Остават до</span>
-                <strong id="daysLeft">--</strong>
-                <span class="next-rank-name" id="nextRankName">--</span>
-            </div>
-            <div class="stat-box">
-                <span>Рангът тече от</span>
-                <strong id="rankStartDate">--</strong>
-            </div>
+    <div id="unlockScreen">
+        <div class="tracker-card unlock-card">
+            <h2>🎉 ПОЗДРАВЛЕНИЯ 🎉</h2>
+            <p>Отключи нов ранг:</p>
+            <div class="rank-name" id="unlockRankName">Зареждане...</div>
+            <button class="unlock-btn" id="continueBtn">Продължи към тракера</button>
         </div>
     </div>
 
-    <div class="tracker-card">
-        <h1>Рангове</h1>
-
-        <div class="info-box" id="clickInfo">
-            Цъкни върху някой ранг, за да видиш кога започва
-        </div>
-
-        <ul class="ranks-list" id="ranksList">
-        </ul>
-    </div>
-
-</div>
-
-<script>
-    const ranks = [
-        { name: "Mortal", startDay: 1, endDay: 6, label: "Day 1 - 6" },
-        { name: "Soldier", startDay: 7, endDay: 13, label: "Day 7 - 13" },
-        { name: "Captain", startDay: 14, endDay: 20, label: "Day 14 - 20" },
-        { name: "General", startDay: 21, endDay: 29, label: "Day 21 - 29" },
-        { name: "Commander", startDay: 30, endDay: 59, label: "Day 30 - 59" },
-        { name: "Warrior", startDay: 60, endDay: 89, label: "Day 60 - 89" },
-        { name: "Demigod", startDay: 90, endDay: 179, label: "Day 90+" },
-        { name: "NoFap God", startDay: 180, endDay: 364, label: "Day 180+" },
-        { name: "Titan", startDay: 365, endDay: 729, label: "Day 365+" },
-        { name: "Primordial", startDay: 730, endDay: Infinity, label: "Day 730+" }
-    ];
-
-    const startDateInput = document.getElementById('startDate');
-    const ranksListContainer = document.getElementById('ranksList');
-    const clickInfo = document.getElementById('clickInfo');
-    
-    const unlockScreen = document.getElementById('unlockScreen');
-    const dashboardView = document.getElementById('dashboardView');
-    const unlockRankName = document.getElementById('unlockRankName');
-    const continueBtn = document.getElementById('continueBtn');
-    const motivationMsg = document.getElementById('motivationMsg');
-
-    // --- НОВО: Зареждане на запазената дата от localStorage ---
-    const savedDate = localStorage.getItem('trackerStartDate');
-    if (savedDate) {
-        startDateInput.value = savedDate;
-    }
-
-    let fireworksInterval;
-
-    function shootFireworks() {
-        var duration = 3 * 1000;
-        var animationEnd = Date.now() + duration;
-        var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 30 };
-
-        function randomInRange(min, max) {
-            return Math.random() * (max - min) + min;
-        }
-
-        fireworksInterval = setInterval(function() {
-            var timeLeft = animationEnd - Date.now();
-
-            if (timeLeft <= 0) {
-                return clearInterval(fireworksInterval);
-            }
-
-            var particleCount = 50 * (timeLeft / duration);
-            
-            confetti({
-                ...defaults, particleCount,
-                origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
-            });
-            confetti({
-                ...defaults, particleCount,
-                origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
-            });
-        }, 250);
-    }
-
-    function buildRanksList() {
-        ranksListContainer.innerHTML = '';
-        ranks.forEach((rank, index) => {
-            const li = document.createElement('li');
-            li.className = 'rank-item';
-            li.id = `rank-item-${index}`;
-            
-            li.innerHTML = `
-                <span class="rank-label-name">${rank.name}</span>
-                <span class="rank-label-days">${rank.label}</span>
-            `;
-
-            li.addEventListener('click', () => calculateSpecificRankDate(rank));
-            ranksListContainer.appendChild(li);
-        });
-    }
-
-    function calculateSpecificRankDate(rank) {
-        const startDateStr = startDateInput.value;
-        if (!startDateStr) return;
-
-        const dateParts = startDateStr.split('-');
-        const startDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+    <div class="layout-container" id="dashboardView">
         
-        startDate.setDate(startDate.getDate() + (rank.startDay - 1));
+        <div class="tracker-card">
+            <h1>Tracker</h1>
+            
+            <div class="config-section">
+                <label for="startDate">Начална дата:</label>
+                <input type="date" id="startDate">
+            </div>
 
-        const options = { day: 'numeric', month: 'long', year: 'numeric' };
-        const formattedDate = startDate.toLocaleDateString('bg-BG', options);
+            <div class="rank-display">
+                <p>Текущ статус</p>
+                <div class="rank-name" id="rankName">Зареждане...</div>
+                
+                <div class="day-counter">
+                    <span id="totalDays">Ден --</span>
+                    <span id="dayCountdown">(--:--:--)</span>
+                </div>
+            </div>
 
-        clickInfo.innerHTML = `Ранг <strong>${rank.name}</strong> започва на <br><strong>${formattedDate}</strong> (Ден ${rank.startDay})`;
-    }
+            <div class="progress-section">
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="progressBar"></div>
+                </div>
+                <div class="progress-stats">
+                    <span id="percentComplete">0%</span>
+                    <span id="daysInCurrentRank">0 / 0 дни</span>
+                </div>
+                
+                <div class="motivation-msg" id="motivationMsg">
+                    🚀 Утре отключваш <span>нов ранг</span>! Не се предавай!
+                </div>
+            </div>
 
-    function updateTracker() {
-        const startDateStr = startDateInput.value;
-        if (!startDateStr) return;
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <span>Остават до</span>
+                    <strong id="daysLeft">--</strong>
+                    <span class="next-rank-name" id="nextRankName">--</span>
+                </div>
+                <div class="stat-box">
+                    <span>Рангът тече от</span>
+                    <strong id="rankStartDate">--</strong>
+                </div>
+            </div>
+        </div>
 
-        const dateParts = startDateStr.split('-');
-        const startDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
-        const now = new Date();
+        <div class="tracker-card">
+            <h1>Рангове</h1>
+            
+            <div class="info-box" id="clickInfo">
+                Цъкни върху някой ранг, за да видиш кога започва
+            </div>
 
-        startDate.setHours(0, 0, 0, 0);
-        now.setHours(0, 0, 0, 0);
+            <ul class="ranks-list" id="ranksList">
+            </ul>
+        </div>
 
-        const diffTime = now.getTime() - startDate.getTime();
-        const daysPassed = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    </div>
 
-        let currentDay = daysPassed;
-        if (currentDay < 1) currentDay = 1;
+    <script>
+        const ranks = [
+            { name: "Mortal", startDay: 1, endDay: 6, label: "Day 1 - 6" },
+            { name: "Soldier", startDay: 7, endDay: 13, label: "Day 7 - 13" },
+            { name: "Captain", startDay: 14, endDay: 20, label: "Day 14 - 20" },
+            { name: "General", startDay: 21, endDay: 29, label: "Day 21 - 29" },
+            { name: "Commander", startDay: 30, endDay: 59, label: "Day 30 - 59" },
+            { name: "Warrior", startDay: 60, endDay: 89, label: "Day 60 - 89" },
+            { name: "Demigod", startDay: 90, endDay: 179, label: "Day 90+" },
+            { name: "NoFap God", startDay: 180, endDay: 364, label: "Day 180+" },
+            { name: "Titan", startDay: 365, endDay: 729, label: "Day 365+" },
+            { name: "Primordial", startDay: 730, endDay: Infinity, label: "Day 730+" }
+        ];
 
-        document.getElementById('totalDays').innerText = `Ден ${currentDay}`;
+        const startDateInput = document.getElementById('startDate');
+        const ranksListContainer = document.getElementById('ranksList');
+        const clickInfo = document.getElementById('clickInfo');
+        
+        const unlockScreen = document.getElementById('unlockScreen');
+        const dashboardView = document.getElementById('dashboardView');
+        const unlockRankName = document.getElementById('unlockRankName');
+        const continueBtn = document.getElementById('continueBtn');
+        const motivationMsg = document.getElementById('motivationMsg');
 
-        let currentRankIndex = 0;
-        for (let i = 0; i < ranks.length; i++) {
-            if (currentDay >= ranks[i].startDay && currentDay <= ranks[i].endDay) {
-                currentRankIndex = i;
-                break;
-            }
+        const defaultDate = '2026-06-29';
+        let savedDate = localStorage.getItem('trackerStartDate');
+
+        if (!savedDate) {
+            savedDate = defaultDate;
+            localStorage.setItem('trackerStartDate', defaultDate);
         }
 
-        const currentRank = ranks[currentRankIndex];
-        const nextRank = currentRankIndex < ranks.length - 1 ? ranks[currentRankIndex + 1] : null;
+        startDateInput.value = savedDate;
 
-        document.getElementById('rankName').innerText = currentRank.name;
+        let fireworksInterval;
 
-        document.querySelectorAll('.rank-item').forEach((el, index) => {
-            if (index === currentRankIndex) {
-                el.classList.add('active');
-            } else {
-                el.classList.remove('active');
+        function shootFireworks() {
+            var duration = 3 * 1000;
+            var animationEnd = Date.now() + duration;
+            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 30 };
+
+            function randomInRange(min, max) {
+                return Math.random() * (max - min) + min;
             }
-        });
 
-        if (currentDay === currentRank.startDay) {
-            unlockScreen.style.display = 'flex';
-            dashboardView.style.display = 'none';
-            unlockRankName.innerText = currentRank.name;
-            shootFireworks();
-        } else {
+            fireworksInterval = setInterval(function() {
+                var timeLeft = animationEnd - Date.now();
+
+                if (timeLeft <= 0) {
+                    return clearInterval(fireworksInterval);
+                }
+
+                var particleCount = 50 * (timeLeft / duration);
+                
+                confetti({
+                    ...defaults, particleCount,
+                    origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+                });
+                confetti({
+                    ...defaults, particleCount,
+                    origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+                });
+            }, 250);
+        }
+
+        function buildRanksList() {
+            ranksListContainer.innerHTML = '';
+            ranks.forEach((rank, index) => {
+                const li = document.createElement('li');
+                li.className = 'rank-item';
+                li.id = `rank-item-${index}`;
+                
+                li.innerHTML = `
+                    <span class="rank-label-name">${rank.name}</span>
+                    <span class="rank-label-days">${rank.label}</span>
+                `;
+
+                li.addEventListener('click', () => calculateSpecificRankDate(rank));
+                ranksListContainer.appendChild(li);
+            });
+        }
+
+        function calculateSpecificRankDate(rank) {
+            const startDateStr = startDateInput.value;
+            if (!startDateStr) return;
+
+            const dateParts = startDateStr.split('-');
+            const startDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+            
+            startDate.setDate(startDate.getDate() + (rank.startDay - 1));
+
+            const options = { day: 'numeric', month: 'long', year: 'numeric' };
+            const formattedDate = startDate.toLocaleDateString('bg-BG', options);
+
+            clickInfo.innerHTML = `Ранг <strong>${rank.name}</strong> започва на <br><strong>${formattedDate}</strong> (Ден ${rank.startDay})`;
+        }
+
+        function updateTracker() {
+            const startDateStr = startDateInput.value;
+            if (!startDateStr) return;
+
+            const dateParts = startDateStr.split('-');
+            const startDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+            const now = new Date();
+
+            startDate.setHours(0, 0, 0, 0);
+            now.setHours(0, 0, 0, 0);
+
+            const diffTime = now.getTime() - startDate.getTime();
+            const daysPassed = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+            let currentDay = daysPassed;
+            if (currentDay < 1) currentDay = 1;
+
+            document.getElementById('totalDays').innerText = `Ден ${currentDay}`;
+
+            let currentRankIndex = 0;
+            for (let i = 0; i < ranks.length; i++) {
+                if (currentDay >= ranks[i].startDay && currentDay <= ranks[i].endDay) {
+                    currentRankIndex = i;
+                    break;
+                }
+            }
+
+            const currentRank = ranks[currentRankIndex];
+            const nextRank = currentRankIndex < ranks.length - 1 ? ranks[currentRankIndex + 1] : null;
+
+            document.getElementById('rankName').innerText = currentRank.name;
+
+            document.querySelectorAll('.rank-item').forEach((el, index) => {
+                if (index === currentRankIndex) {
+                    el.classList.add('active');
+                } else {
+                    el.classList.remove('active');
+                }
+            });
+
+            if (currentDay === currentRank.startDay) {
+                unlockScreen.style.display = 'flex';
+                dashboardView.style.display = 'none';
+                unlockRankName.innerText = currentRank.name;
+                shootFireworks();
+            } else {
+                unlockScreen.style.display = 'none';
+                dashboardView.style.display = 'flex';
+            }
+
+            if (currentRank.name === "Primordial") {
+                document.getElementById('progressBar').style.width = '100%';
+                document.getElementById('percentComplete').innerText = '100%';
+                document.getElementById('daysInCurrentRank').innerText = 'Максимален ранг';
+                document.getElementById('daysLeft').innerText = 'MAX';
+                document.getElementById('nextRankName').innerText = 'Достигнат връх';
+                motivationMsg.style.display = 'none';
+            } else {
+                const totalDaysInRank = currentRank.endDay - currentRank.startDay + 1;
+                const daysSpentInRank = currentDay - currentRank.startDay + 1;
+                
+                let progressPercent = (daysSpentInRank / totalDaysInRank) * 100;
+                if (progressPercent > 100) progressPercent = 100;
+
+                document.getElementById('progressBar').style.width = `${progressPercent}%`;
+                document.getElementById('percentComplete').innerText = `${Math.floor(progressPercent)}%`;
+                document.getElementById('daysInCurrentRank').innerText = `${daysSpentInRank} / ${totalDaysInRank} дни`;
+
+                const daysLeft = currentRank.endDay - currentDay + 1;
+                
+                const daysLeftText = daysLeft === 1 ? 'ден' : 'дни';
+                document.getElementById('daysLeft').innerText = `${daysLeft} ${daysLeftText}`;
+                
+                document.getElementById('nextRankName').innerText = nextRank ? nextRank.name : '';
+
+                if (progressPercent >= 100) {
+                    motivationMsg.style.display = 'block';
+                } else {
+                    motivationMsg.style.display = 'none';
+                }
+            }
+
+            const rankStartDateTime = new Date(startDate);
+            rankStartDateTime.setDate(startDate.getDate() + (currentRank.startDay - 1));
+            
+            const options = { day: 'numeric', month: 'short', year: 'numeric' };
+            const formattedDate = rankStartDateTime.toLocaleDateString('bg-BG', options);
+            document.getElementById('rankStartDate').innerText = formattedDate;
+        }
+
+        // --- НОВО: Логика за живия таймер ---
+        function startDayCountdown() {
+            function tick() {
+                const now = new Date();
+                const tomorrow = new Date(now);
+                tomorrow.setHours(24, 0, 0, 0); // Настройва за следващата полунощ
+                
+                const diffMs = tomorrow - now;
+
+                // Ако минем полунощ, рефрешваме тракера след секунда
+                if (diffMs <= 1000 && diffMs > 0) {
+                    setTimeout(updateTracker, 1500); 
+                }
+
+                const h = Math.floor((diffMs / (1000 * 60 * 60)) % 24).toString().padStart(2, '0');
+                const m = Math.floor((diffMs / 1000 / 60) % 60).toString().padStart(2, '0');
+                const s = Math.floor((diffMs / 1000) % 60).toString().padStart(2, '0');
+
+                document.getElementById('dayCountdown').innerText = `(${h}:${m}:${s})`;
+            }
+            
+            tick(); // Извикваме го веднъж веднага, за да не чакаме 1 секунда празно поле
+            setInterval(tick, 1000);
+        }
+
+        continueBtn.addEventListener('click', () => {
             unlockScreen.style.display = 'none';
             dashboardView.style.display = 'flex';
-        }
+            if (fireworksInterval) clearInterval(fireworksInterval); 
+        });
 
-        if (currentRank.name === "Primordial") {
-            document.getElementById('progressBar').style.width = '100%';
-            document.getElementById('percentComplete').innerText = '100%';
-            document.getElementById('daysInCurrentRank').innerText = 'Максимален ранг';
-            document.getElementById('daysLeft').innerText = 'MAX';
-            document.getElementById('nextRankName').innerText = 'Достигнат връх';
-            motivationMsg.style.display = 'none'; 
-        } else {
-            const totalDaysInRank = currentRank.endDay - currentRank.startDay + 1;
-            const daysSpentInRank = currentDay - currentRank.startDay + 1;
-            
-            let progressPercent = (daysSpentInRank / totalDaysInRank) * 100;
-            if (progressPercent > 100) progressPercent = 100;
-
-            document.getElementById('progressBar').style.width = `${progressPercent}%`;
-            document.getElementById('percentComplete').innerText = `${Math.floor(progressPercent)}%`;
-            document.getElementById('daysInCurrentRank').innerText = `${daysSpentInRank} / ${totalDaysInRank} дни`;
-
-            const daysLeft = currentRank.endDay - currentDay + 1;
-            
-            const daysLeftText = daysLeft === 1 ? 'ден' : 'дни';
-            document.getElementById('daysLeft').innerText = `${daysLeft} ${daysLeftText}`;
-            
-            document.getElementById('nextRankName').innerText = nextRank ? nextRank.name : '';
-
-            if (progressPercent >= 100) {
-                motivationMsg.style.display = 'block';
-            } else {
-                motivationMsg.style.display = 'none';
-            }
-        }
-
-        const rankStartDateTime = new Date(startDate);
-        rankStartDateTime.setDate(startDate.getDate() + (currentRank.startDay - 1));
+        buildRanksList();
         
-        const options = { day: 'numeric', month: 'short', year: 'numeric' };
-        const formattedDate = rankStartDateTime.toLocaleDateString('bg-BG', options);
-        document.getElementById('rankStartDate').innerText = formattedDate;
-    }
-
-    continueBtn.addEventListener('click', () => {
-        unlockScreen.style.display = 'none';
-        dashboardView.style.display = 'flex';
-        if (fireworksInterval) clearInterval(fireworksInterval); 
-    });
-
-    buildRanksList();
-    
-    // --- НОВО: Запазване на датата в localStorage при промяна ---
-    startDateInput.addEventListener('change', () => {
-        localStorage.setItem('trackerStartDate', startDateInput.value);
+        startDateInput.addEventListener('change', () => {
+            localStorage.setItem('trackerStartDate', startDateInput.value);
+            updateTracker();
+            clickInfo.innerHTML = "Цъкни върху някой ранг, за да видиш кога започва";
+        });
+        
         updateTracker();
-        clickInfo.innerHTML = "Цъкни върху някой ранг, за да видиш кога започва";
-    });
-    
-    updateTracker();
-</script>
+        startDayCountdown(); // Стартираме таймера
+    </script>
 </body>
 </html>
