@@ -417,12 +417,18 @@
     const startDateInput = document.getElementById('startDate');
     const ranksListContainer = document.getElementById('ranksList');
     const clickInfo = document.getElementById('clickInfo');
-
+    
     const unlockScreen = document.getElementById('unlockScreen');
     const dashboardView = document.getElementById('dashboardView');
     const unlockRankName = document.getElementById('unlockRankName');
     const continueBtn = document.getElementById('continueBtn');
     const motivationMsg = document.getElementById('motivationMsg');
+
+    // --- НОВО: Зареждане на запазената дата от localStorage ---
+    const savedDate = localStorage.getItem('trackerStartDate');
+    if (savedDate) {
+        startDateInput.value = savedDate;
+    }
 
     let fireworksInterval;
 
@@ -443,7 +449,7 @@
             }
 
             var particleCount = 50 * (timeLeft / duration);
-
+            
             confetti({
                 ...defaults, particleCount,
                 origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
@@ -461,11 +467,11 @@
             const li = document.createElement('li');
             li.className = 'rank-item';
             li.id = `rank-item-${index}`;
-
+            
             li.innerHTML = `
-                    <span class="rank-label-name">${rank.name}</span>
-                    <span class="rank-label-days">${rank.label}</span>
-                `;
+                <span class="rank-label-name">${rank.name}</span>
+                <span class="rank-label-days">${rank.label}</span>
+            `;
 
             li.addEventListener('click', () => calculateSpecificRankDate(rank));
             ranksListContainer.appendChild(li);
@@ -478,7 +484,7 @@
 
         const dateParts = startDateStr.split('-');
         const startDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
-
+        
         startDate.setDate(startDate.getDate() + (rank.startDay - 1));
 
         const options = { day: 'numeric', month: 'long', year: 'numeric' };
@@ -543,11 +549,11 @@
             document.getElementById('daysInCurrentRank').innerText = 'Максимален ранг';
             document.getElementById('daysLeft').innerText = 'MAX';
             document.getElementById('nextRankName').innerText = 'Достигнат връх';
-            motivationMsg.style.display = 'none'; // Скриваме го, защото няма следващ ранг
+            motivationMsg.style.display = 'none'; 
         } else {
             const totalDaysInRank = currentRank.endDay - currentRank.startDay + 1;
             const daysSpentInRank = currentDay - currentRank.startDay + 1;
-
+            
             let progressPercent = (daysSpentInRank / totalDaysInRank) * 100;
             if (progressPercent > 100) progressPercent = 100;
 
@@ -556,14 +562,12 @@
             document.getElementById('daysInCurrentRank').innerText = `${daysSpentInRank} / ${totalDaysInRank} дни`;
 
             const daysLeft = currentRank.endDay - currentDay + 1;
-
-            // Проверка за правилна граматика (1 ден срещу X дни)
+            
             const daysLeftText = daysLeft === 1 ? 'ден' : 'дни';
             document.getElementById('daysLeft').innerText = `${daysLeft} ${daysLeftText}`;
-
+            
             document.getElementById('nextRankName').innerText = nextRank ? nextRank.name : '';
 
-            // ЛОГИКА ЗА МОТИВАЦИОННОТО СЪОБЩЕНИЕ
             if (progressPercent >= 100) {
                 motivationMsg.style.display = 'block';
             } else {
@@ -573,7 +577,7 @@
 
         const rankStartDateTime = new Date(startDate);
         rankStartDateTime.setDate(startDate.getDate() + (currentRank.startDay - 1));
-
+        
         const options = { day: 'numeric', month: 'short', year: 'numeric' };
         const formattedDate = rankStartDateTime.toLocaleDateString('bg-BG', options);
         document.getElementById('rankStartDate').innerText = formattedDate;
@@ -582,14 +586,18 @@
     continueBtn.addEventListener('click', () => {
         unlockScreen.style.display = 'none';
         dashboardView.style.display = 'flex';
-        if (fireworksInterval) clearInterval(fireworksInterval);
+        if (fireworksInterval) clearInterval(fireworksInterval); 
     });
 
     buildRanksList();
+    
+    // --- НОВО: Запазване на датата в localStorage при промяна ---
     startDateInput.addEventListener('change', () => {
+        localStorage.setItem('trackerStartDate', startDateInput.value);
         updateTracker();
         clickInfo.innerHTML = "Цъкни върху някой ранг, за да видиш кога започва";
     });
+    
     updateTracker();
 </script>
 </body>
